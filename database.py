@@ -37,21 +37,57 @@ def database_connect():
 #####################################################
 
 def check_login(email, password):
-    # Dummy data
-    val = ['Shadow', 'Mr', 'Evan', 'Nave', '123 Fake Street, Fakesuburb', 'SIT', '01-05-2016', 'Premium', '1']
-    # TODO
-    # Check if the user details are correct!
-    # Return the relevant information (watch the order!)
-    return val
+    # checks if user details are correct
+    # connect database and configurate cursor
+    conn = database_connect()
+    if(conn is None):
+        return ERROR_CODE
+    cur = conn.cursor()
+    try:
+        # try getting information returned from query
+        check = """SELECT *
+                   FROM CarSharing.Member
+                   WHERE email=%s AND password=%s"""
+        cur.execute(check, (email, password))
+        val = cur.fetchone()
+        cur.close()             # close the cursor
+        conn.close()            # close the connection to db
+        return val
+    except:
+        # if any error, print error message and return a NULL row
+        print("Error. Please check your login details.")
+    cur.close()                 # close the cursor
+    cur.close()                 # close the connection to db
+    return None
 
 
 #####################################################
 ##  Homebay
 #####################################################
 def update_homebay(email, bayname):
-    # TODO
-    # Update the user's homebay
+    # updates the user's homebay
+    # connect database and configurate cursor
+    conn = database_connect()
+    if(conn is None):
+        return ERROR_CODE
+    cur = conn.cursor()
+    try:
+        # try getting information returned from query
+        update = """UPDATE Member
+                    SET homeBay = %s
+                    WHERE Member.email = %s
+                        AND EXISTS(SELECT name
+                                   FROM CarBay
+                                   WHERE name = %s)"""
+        cur.execute(update, (bayname, email, bayname))
+        val = cur.fetchone()
+    except:
+        # if any error, print error message and return a NULL row
+        print("Error with the Database.")
+    cur.close()             # close the cursor
+    conn.close()            # close the connection to db
     return True
+    
 
 #####################################################
 ##  Booking (make, get all, get details)
@@ -70,12 +106,32 @@ def make_booking(email, car_rego, date, hour, duration):
 
 
 def get_all_bookings(email):
-    val = [['66XY99', 'Ice the Cube', '01-05-2016', '10', '4', '29-04-2016'],['66XY99', 'Ice the Cube', '27-04-2016', '16'], ['WR3KD', 'Bob the SmartCar', '01-04-2016', '6']]
-
-    # TODO
     # Get all the bookings made by this member's email
+    # connect database and configurate cursor
+    conn = database_connect()
+    if(conn is None):
+        return ERROR_CODE
+    cur = conn.cursor()
+    val = None
+    try:
+        # try getting information returned from query
+        bookings = """ SELECT car as CarRegistration, name as CarName, 
+                    DATE(starttime) as Date, [GET TIME FROM TIMESTAMP] as Time
+                    FROM CarSharing.Booking
+                        JOIN CarSharing.Member ON (memberNo = madeBy)
+                        JOIN CarSharing.Car ON (car = regno)
+                    WHERE email=%s
+                    ORDER BY whenBooked DESC
+                    """ # UNSURE HOW TO GET TIME (JUST HH:MM) FROM TIMESTAMP
+        cur.execute(bookings, (email))
+        val = cur.fetchall()
+    except:
+        # if any error, print error message and return a NULL row
+        print("Error with the Database.")
+    cur.close()             # close the cursor
+    conn.close()            # close the connection to db
+    return val 
 
-    return val
 
 def get_booking(b_date, b_hour, car):
     val = ['Shadow', '66XY99', 'Ice the Cube', '01-05-2016', '10', '4', '29-04-2016', 'SIT']
