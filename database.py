@@ -38,8 +38,7 @@ def database_connect():
 
 def check_login(email, password):
     # checks if user details are correct
-    # connect database and configurate cursor
-    conn = database_connect()
+    conn = database_connect()   # connect database and configurate cursor
     if(conn is None):
         return ERROR_CODE
     cur = conn.cursor()
@@ -66,8 +65,7 @@ def check_login(email, password):
 #####################################################
 def update_homebay(email, bayname):
     # updates the user's homebay
-    # connect database and configurate cursor
-    conn = database_connect()
+    conn = database_connect()   # connect database and configurate cursor
     if(conn is None):
         return ERROR_CODE
     cur = conn.cursor()
@@ -107,23 +105,21 @@ def make_booking(email, car_rego, date, hour, duration):
 
 def get_all_bookings(email):
     # Get all the bookings made by this member's email
-    # connect database and configurate cursor
-    conn = database_connect()
+    conn = database_connect()   # connect database and configurate cursor
     if(conn is None):
         return ERROR_CODE
     cur = conn.cursor()
     val = None
     try:
         # try getting information returned from query
-        bookings = """ SELECT car as CarRegistration, name as CarName, 
-                    DATE(starttime) as Date, [GET TIME FROM TIMESTAMP] as Time
-                    FROM CarSharing.Booking
-                        JOIN CarSharing.Member ON (memberNo = madeBy)
+        bookings = """SELECT car as CarRegistration, name as CarName,
+                        DATE(starttime) as Date, starttime::time as Time
+                      FROM CarSharing.Booking JOIN CarSharing.Member ON (memberNo = madeBy)
                         JOIN CarSharing.Car ON (car = regno)
-                    WHERE email=%s
-                    ORDER BY whenBooked DESC
-                    """ # UNSURE HOW TO GET TIME (JUST HH:MM) FROM TIMESTAMP
-        cur.execute(bookings, (email))
+                      WHERE email=%s
+                      ORDER BY whenBooked DESC;
+                    """
+        cur.execute(bookings, (email,))
         val = cur.fetchall()
     except:
         # if any error, print error message and return a NULL row
@@ -134,13 +130,31 @@ def get_all_bookings(email):
 
 
 def get_booking(b_date, b_hour, car):
-    val = ['Shadow', '66XY99', 'Ice the Cube', '01-05-2016', '10', '4', '29-04-2016', 'SIT']
-
-    # TODO
-    # Get the information about a certain booking
-    # It has to have the combination of date, hour and car
-
-    return val
+    # Get the information about a certain booking that has specified date, hour, and car
+    conn = database_connect()   # connect database and configurate cursor
+    if(conn is None):
+        return ERROR_CODE
+    cur = conn.cursor()
+    val = None
+    try:
+        # try getting information returned from query
+        booking = """SELECT nickname as MemberName, Car.regno as CarRegistration,
+                        Car.name as CarName, DATE(starttime) as Date, date_part('hour', starttime) as Hour,
+                        date_part('hour', endtime - starttime) as Duration,
+                        DATE(whenBooked) as WhenBo 
+c kvl c df                     FROM CarSharing.Booking JOIN CarSharing.Member ON (memberNo = madeBy)
+                        JOIN CarSharing.Car ON (car = regno)
+                        JOIN CarSharing.CarBay ON (parkedAt = bayID)
+                     WHERE DATE(starttime)=%s AND date_part('hour',starttime)=%s AND Car.regno=%s
+                     ORDER BY whenBooked DESC;"""
+        cur.execute(booking, (b_date, b_hour, car))
+        val = cur.fetchone()
+    except:
+        # if any error, print error message and return a NULL row
+        print("Error with the Database.")  
+    cur.close()
+    conn.close()
+    return val 
 
 
 #####################################################
@@ -167,12 +181,26 @@ def get_all_cars():
 #####################################################
 
 def get_all_bays():
-    val = [['SIT', '123 Some Street, Boulevard', '2'], ['some_bay', '1 Somewhere Road, Right here', '1']]
-    # TODO
     # Get all the bays that PeerCar has :)
     # And the number of bays
-    # Return the results
+    conn = database_connect()   # connect database and configurate cursor
+    if(conn is None):
+        return ERROR_CODE
+    cur = conn.cursor()
+    val = None
+
+    try:
+        bay = """SELECT name, address, bayID
+                 FROM CarSharing.CarBay"""
+        cur.execute(bay)
+        val = cur.fetchall()
+    except:
+        # if any error, print error message and return a NULL row
+        print("Error with the Database.")
+    cur.close()
+    conn.close()
     return val
+
 
 def get_bay(name):
     val = ['SIT', 'Home to many (happy?) people.', '123 Some Street, Boulevard', '-33.887946', '151.192958']
