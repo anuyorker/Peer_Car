@@ -26,7 +26,7 @@ def database_connect():
     except pg8000.OperationalError as e:
         print("""Error, you haven't updated your config.ini or you have a bad
         connection, please try again. (Update your files first, then check
-        internet connection)
+        internet connection) 
         """)
         print(e)
     #return the connection to use
@@ -112,7 +112,7 @@ def get_all_bookings(email):
     val = None
     try:
         # try getting information returned from query
-        bookings = """SELECT car as CarRegistration, name as CarName,
+        bookings = """SELECT car as CarRegistration, name as CarName,                                        
                         DATE(starttime) as Date, starttime::time as Time
                       FROM CarSharing.Booking JOIN CarSharing.Member ON (memberNo = madeBy)
                         JOIN CarSharing.Car ON (car = regno)
@@ -138,22 +138,22 @@ def get_booking(b_date, b_hour, car):
     val = None
     try:
         # try getting information returned from query
-        booking = """SELECT nickname as MemberName, Car.regno as CarRegistration,
-                        Car.name as CarName, DATE(starttime) as Date, date_part('hour', starttime) as Hour,
-                        date_part('hour', endtime - starttime) as Duration,
-                        DATE(whenBooked) as WhenBo 
-c kvl c df                     FROM CarSharing.Booking JOIN CarSharing.Member ON (memberNo = madeBy)
+        booking = """SELECT Member.nickname as MemberName, Car.regno as CarRegistration,
+                        Car.name as CarName, DATE(starttime) as Date, date_part('hour', starttime) as Time,
+                        date_part('hour', (endtime - starttime)) as Duration,
+                        DATE(whenBooked) as WhenBooked, CarBay.name as CarBay 
+                     FROM CarSharing.Booking JOIN CarSharing.Member ON (memberNo = madeBy)
                         JOIN CarSharing.Car ON (car = regno)
                         JOIN CarSharing.CarBay ON (parkedAt = bayID)
-                     WHERE DATE(starttime)=%s AND date_part('hour',starttime)=%s AND Car.regno=%s
+                     WHERE DATE(starttime)=%s AND date_part('hour', starttime)=%s AND Car.regno=%s
                      ORDER BY whenBooked DESC;"""
         cur.execute(booking, (b_date, b_hour, car))
         val = cur.fetchone()
     except:
         # if any error, print error message and return a NULL row
         print("Error with the Database.")  
-    cur.close()
-    conn.close()
+    cur.close()             # close the cursor
+    conn.close()            # close the connection to db
     return val 
 
 
@@ -162,37 +162,70 @@ c kvl c df                     FROM CarSharing.Booking JOIN CarSharing.Member O
 #####################################################
 
 def get_car_details(regno):
-    val = ['66XY99', 'Ice the Cube','Nissan', 'Cube', '2007', 'auto', 'Luxury', '5', 'SIT', '8', 'http://example.com']
-    # TODO
+    # val = ['66XY99', 'Ice the Cube','Nissan', 'Cube', '2007', 'auto', 'Luxury', '5', 'SIT', '8', 'http://example.com']
     # Get details of the car with this registration number
     # Return the data (NOTE: look at the information, requires more than a simple select. NOTE ALSO: ordering of columns)
+    conn = database_connect()   # connect database and configurate cursor
+    if(conn is None):
+        return ERROR_CODE
+    cur = conn.cursor()
+    val = None
+    try:
+        cardetails = """SELECT regno, Car.name, make, model, year, transmission,
+                        category, capacity, CarBay.name, walkscore, mapURL
+                        FROM CarSharing.Car
+                            JOIN CarSharing.CarModel ON (Car.model=CarModel.model AND Car.make=CarModel.make)
+                            JOIN CarSharing.CarBay ON (Car.parkedAt=CarBay.bayID)
+                        WHERE Car.regno = %s;"""
+        cur.execute(cardetails, (regno,))
+        val = cur.fetchone()
+    except:
+        # if any error, print error message and return a NULL row
+        print("Error with the Database.")
+    cur.close()
+    conn.close()
     return val
 
 def get_all_cars():
-    val = [ ['66XY99', 'Ice the Cube', 'Nissan', 'Cube', '2007', 'auto'], ['WR3KD', 'Bob the SmartCar', 'Smart', 'Fortwo', '2015', 'auto']]
-
-    # TODO
+    #val = [ ['66XY99', 'Ice the Cube', 'Nissan', 'Cube', '2007', 'auto'], ['WR3KD', 'Bob the SmartCar', 'Smart', 'Fortwo', '2015', 'auto']]
     # Get all cars that PeerCar has
     # Return the results
-
+    conn = database_connect()   # connect database and configurate cursor
+    if(conn is None):
+        return ERROR_CODE
+    cur = conn.cursor()
+    val = None
+    try:
+        cars = """SELECT regno, name, make, model, year, transmission
+                  FROM CarSharing.Car"""
+        cur.execute(cars)
+        val = cur.fetchall()
+    except:
+        # if any error, print error message and return a NULL row
+        print("Error with the Database.")
+    cur.close()
+    conn.close()
     return val
+
+
 #####################################################
 ##  Bay (detail, list, finding cars inside bay)
 #####################################################
 
 def get_all_bays():
     # Get all the bays that PeerCar has :)
-    # And the number of bays
+    # And the number of cars
     conn = database_connect()   # connect database and configurate cursor
     if(conn is None):
         return ERROR_CODE
-    cur = conn.cursor()
+    cur = conn.cursor() 
     val = None
 
     try:
-        bay = """SELECT name, address, bayID
-                 FROM CarSharing.CarBay"""
-        cur.execute(bay)
+        bays = """SELECT name, address, bayID
+                  FROM CarSharing.CarBay
+                  ORDER BY name"""
+        cur.execute(bays)
         val = cur.fetchall()
     except:
         # if any error, print error message and return a NULL row
@@ -203,28 +236,69 @@ def get_all_bays():
 
 
 def get_bay(name):
-    val = ['SIT', 'Home to many (happy?) people.', '123 Some Street, Boulevard', '-33.887946', '151.192958']
-
-    # TODO
     # Get the information about the bay with this unique name
     # Make sure you're checking ordering ;)
+    conn = database_connect()   # connect database and configurate cursor
+    if(conn is None):
+        return ERROR_CODE
+    cur = conn.cursor()
+    val = None
 
+    try:
+        bay = """SELECT name, description, address, gps_long, gps_lat
+                 FROM CarSharing.CarBay
+                 WHERE name = %s
+                 """
+        cur.execute(bay, (name,))
+        val = cur.fetchone()
+    except:
+        # if any error, print error message and return a NULL row
+        print("Error with the Database.")
+    cur.close()
+    conn.close()
     return val
 
 def search_bays(search_term):
-    val = [['SIT', '123 Some Street, Boulevard', '-33.887946', '151.192958']]
-
-    # TODO
     # Select the bays that match (or are similar) to the search term
-    # You may like this
-    return val
+    conn = database_connect()   # connect database and configurate cursor
+    if(conn is None):
+        return ERROR_CODE 
+    cur = conn.cursor()
+    val = None
+    try:
+        # try getting information returned from query
+        bays = """SELECT *
+                  FROM CarSharing.CarBay  
+                  WHERE LOWER(address) LIKE %s OR LOWER(name) LIKE %s;""" # compare search term with address or name
+        search_term = '%' + search_term + '%'
+        cur.execute(bays, (search_term, search_term))
+        val = cur.fetchall()
+    except:
+        # if any error, print error message and return a NULL row
+        print("Error with the Database.")
+    cur.close()             # close the cursor
+    conn.close()            # close the connection to db
+    if(val is None):
+        val = []
+    return val 
 
 def get_cars_in_bay(bay_name):
-    val = [ ['66XY99', 'Ice the Cube'], ['WR3KD', 'Bob the SmartCar']]
-
-    # TODO
-    # Get the cars inside the bay with the bay name
-    # Cars who have this bay as their bay :)
-    # Return simple details (only regno and name)
-
+    # Get the cars inside the bay with specified bay name and return regno and name
+    conn = database_connect()   # connect database and configurate cursor
+    if(conn is None):
+        return ERROR_CODE
+    cur = conn.cursor()
+    val = None
+    try:
+        carsInBay = """SELECT c.regno, c.name
+                       FROM CarSharing.Car c JOIN CarSharing.CarBay ON (parkedAt = bayID)
+                       WHERE CarBay.name = %s
+                       ORDER BY c.name"""
+        cur.execute(carsInBay, (bay_name,))
+        val = cur.fetchall()
+    except:
+        # if any error, print error message and return a NULL row
+        print("Error with the Database.")
+    cur.close()
+    conn.close()
     return val
