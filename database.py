@@ -71,12 +71,12 @@ def update_homebay(email, bayname):
     cur = conn.cursor()
     try:
         # try getting information returned from query
-        update = """UPDATE Member
-                    SET homeBay = %s
-                    WHERE Member.email = %s
-                        AND EXISTS(SELECT name
-                                   FROM CarBay
-                                   WHERE name = %s)"""
+        update = """UPDATE Member M
+                    SET M.homeBay = %s
+                    WHERE M.email = %s
+                        AND EXISTS(SELECT B.name
+                                   FROM CarBay B
+                                   WHERE B.name = %s)"""
         cur.execute(update, (bayname, email, bayname))
         val = cur.fetchone()
     except:
@@ -171,7 +171,7 @@ def get_car_details(regno):
     cur = conn.cursor()
     val = None
     try:
-        cardetails = """SELECT regno, Car.name, make, model, year, transmission,
+        cardetails = """SELECT regno, Car.name, Car.make, Car.model, year, transmission,
                         category, capacity, CarBay.name, walkscore, mapURL
                         FROM CarSharing.Car
                             JOIN CarSharing.CarModel ON (Car.model=CarModel.model AND Car.make=CarModel.make)
@@ -220,11 +220,13 @@ def get_all_bays():
         return ERROR_CODE
     cur = conn.cursor() 
     val = None
-
     try:
-        bays = """SELECT name, address, bayID
-                  FROM CarSharing.CarBay
-                  ORDER BY name"""
+        bays = """SELECT B.name, B.address, 
+                   (SELECT COUNT(*)
+                    FROM CarBay JOIN Car C ON (bayID=parkedAt)
+                    WHERE B.bayID=C.parkedAt) as NumberOfCars
+                  FROM CarBay B
+                  ORDER BY B.name"""
         cur.execute(bays)
         val = cur.fetchall()
     except:
@@ -245,7 +247,7 @@ def get_bay(name):
     val = None
 
     try:
-        bay = """SELECT name, description, address, gps_long, gps_lat
+        bay = """SELECT name, description, address, gps_lat, gps_long
                  FROM CarSharing.CarBay
                  WHERE name = %s
                  """
@@ -267,9 +269,12 @@ def search_bays(search_term):
     val = None
     try:
         # try getting information returned from query
-        bays = """SELECT *
-                  FROM CarSharing.CarBay  
-                  WHERE LOWER(address) LIKE %s OR LOWER(name) LIKE %s;""" # compare search term with address or name
+        bays = """SELECT B.name, B.address,
+                    (SELECT COUNT(*)
+                     FROM CarBay JOIN Car C ON (bayID=parkedAt)
+                     WHERE B.bayID=C.parkedAt) as NumberOfCars
+                  FROM CarBay B
+                  WHERE LOWER(B.address) LIKE %s OR LOWER(B.name) LIKE %s;""" # compare search term with address or name
         search_term = '%' + search_term + '%'
         cur.execute(bays, (search_term, search_term))
         val = cur.fetchall()
