@@ -66,9 +66,9 @@ def login():
         user_details['family'] = val[3]
         user_details['address'] = val[4]
         user_details['homebay'] = val[5]
-        user_details['membersince'] = val[6]
+        user_details['membersince'] = val[6]    
         user_details['plan'] = val[7]
-        user_details['num_bookings'] = val[8]
+        user_details['num_bookings'] = val[8] 
         return redirect(url_for('index'))
 
     elif(request.method == 'GET'):
@@ -177,6 +177,7 @@ def homebay():
         # Is it successful?
         if(outcome):
             page['bar'] = True
+            user_details['homebay'] = outcome[0] # update user_details with new homebay
             flash("Success, homebay updated!")
         else:
             page['bar'] = False
@@ -209,13 +210,14 @@ def new_booking():
         return render_template('new_booking.html', cars=cars, times=times, session=session, page=page, from_car=from_car)
     # If we're making the booking
     success = database.make_booking(user_details['email'],
-                                request.form['car_regno'],
+                                request.form['car_regno'],                                                            
                                 request.form['book_date'],
                                 request.form['book_hour'],
                                 request.form['duration'])
     if(success == True):
         page['bar'] = True
         flash("Booking Successful!")
+        user_details['num_bookings'] += 1   # increment num_bookings if booking is made successfully
         return(redirect(url_for('index')))
     else:
         page['bar'] = False
@@ -240,9 +242,16 @@ def my_bookings():
 
     if(b_date != '' and b_hour != '' and b_car != ''):
         # Booking details
-        val = database.get_booking(b_date, b_hour, b_car)
+        val = database.get_booking(b_date, b_hour.split(':')[0], b_car)
         return render_template('booking_detail.html', booking=val, session=session, page=page)
 
     # If no booking, then get all the bookings made by the user
     val = database.get_all_bookings(user_details['email'])
     return render_template('bookings_list.html', bookings=val, session=session, page=page)
+
+
+#####################################################
+##  SHOW MY INVOICES
+#####################################################
+
+
