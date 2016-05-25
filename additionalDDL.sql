@@ -101,7 +101,7 @@ $$ LANGUAGE plpgsql;
 
 
 ------------------------------------------------------------
--- EXTENSION 1: Physical Optimization and Materialized View
+-- Physical Optimization and Materialized View
 ------------------------------------------------------------
 -- Reservation table, query to populate existing bookings, and triggers to make corresponding updates
 
@@ -158,7 +158,7 @@ CREATE TRIGGER RemovedBooking
  
 -- ADDITIONAL INDEXES:
 --DROP INDEX bay_name_search;
-CREATE INDEX bay_name_search ON CarBay(name DESC); --de-comment it when received
+CREATE INDEX bay_name_search ON CarBay(name DESC); 
 
 --DROP INDEX member_no_search_ASC;
 CREATE INDEX member_no_search_ASC ON Member(memberNo ASC);
