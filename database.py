@@ -78,10 +78,9 @@ def update_homebay(email, bayname):
 
         # update member's homebay in database
         update = """UPDATE Member M
-                    SET homeBay = %s  --MINOR CORRECTION: Took out "M" from "M.homeBay"   
+                    SET homeBay = %s  
                     WHERE M.email = %s    
-                        AND (SELECT CarSharing.CheckBayExists(%s));"""    
-                        # MINOR CORRECTION: Took out ON UPDATE CASCADE ON DELETE CASCADE          
+                        AND (SELECT CarSharing.CheckBayExists(%s));"""             
         print('before')
         cur.execute(update, (bayID, email, bayname))
         print('after')
